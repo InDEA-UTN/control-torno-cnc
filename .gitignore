@@ -1,0 +1,36 @@
+# Compilación de firmware (PlatformIO, Arduino/Teensyduino, STM32CubeIDE)
+.pio/
+build/
+Debug/
+Release/
+*.hex
+*.elf
+*.bin
+*.map
+*.o
+
+# Python (scripts de medición)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# KiCad: respaldos y archivos temporales (los .kicad_* del proyecto sí se versionan)
+*-backups/
+*.kicad_prl
+fp-info-cache
+*.lck
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Capturas crudas grandes del analizador lógico (las recortadas y chicas sí se versionan)
+*.sr
+*.logicdata
