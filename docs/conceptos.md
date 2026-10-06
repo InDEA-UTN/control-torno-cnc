@@ -39,19 +39,43 @@ pulsos en cada punto (Austin)?
 
 Es el concepto más importante del proyecto.
 
-El control del sistema se realiza a traves de las rampas de aceleracion. cuando 
-*(completar)*
+El control del sistema se realiza a traves de las rampas de aceleracion ya que se pretende manejar el torque del motor. Para lograr esto, se manipula el intervalo entre pulsos para realizar los pasos correspondientes segun el proceso a desarrollar. sin embargo, este control debe realizarse de forma controlada por las siguientes razones:
+
+- el torque del motor decae cuando sube la velocidad debido a la inductancia de las bobinas: la corriente que pasa a traves de las bobinas no llegan a su valor maximo apenas aumenta la velocidad ya que la corriente sigue la curva exponencial indicada por la constante de tiempo tau. por lo tanto, existe una demora entre el instante que aumenta la corriente y el campo magnetico que se establece en el estator. si este cambio es muy rapido, el torque jamas llegara a su valor final y por ende, el torque se vera reducido permamentemente
+
+- La presencia de la fuerza contraelectromotriz: un aumento en la velocidad provoca un aumento de la fuerza contraelectromotriz, que se opone al movimiento del rotor, reduciendo el torque.
+
+- un tren de pulsos que se traduzca en un cambio abrupto de velocidad haria que el motor se pierda pasos: para lograr el movimiento, primero se debe vencer al torque de inercia. un cambio brusco en la velocidad no permitiria que se desarrolle el torque necesario para vencer esa inercia, provocando que el motor se detenga y se pierdan pasos. esto se mitiga parcialmente con un sistema de control de lazo cerrado, ya que el sistema seria capaz de detectar ese error y corregirlo. sin embargo, esto hace que se tenga que enviar varios pulsos mas, que se traduce en mas corriente y, si no se tiene cuidado, en mayores corrientes nominales de trabajo.
+
+Austin describe que para obtener una rampa de aceleracion adecuada en tiempo real sin necesidad de resolver operaciones costosas computacionalmente, hay que reducir el tiempo entre pulsos de forma gradual. Esto se veria de la siguiente manera (para desacelerar, hay que aumentar gradualmente el tiempo entre pulsos):
+
+![imagen](./img/rampa_aceleracion.png)
+
+para lograr esto, se asume una aceleracion constante durante el proceso de arranque (y de parada tambien).
+
+Matematicamente, esto ultimo se puede expresar como: $$C_n = C_{n-1} - \frac{2 \cdot C_{n-1}}{4 n+1}$$ Donde Cn es el tiempo entre pulsos actuales y Cn-1 es el tiempo entre pulsos anteriores. 
+
+Austin advierte que, en el arranque, el primer pulso se debe calcular a partir de la siguiente ecuacion: $$C_0 = f \sqrt{\frac{2\alpha}{\omega'}}$$
+
+Pero es bastante impreciso, por lo que se debe multiplicar por un factor de correccion.
+
+
+$$C_0 = 0,676 \cdot f \cdot \sqrt{\frac{2\alpha}{\omega'}}$$
+
+Para desacelerar, se le asigna valores negativos a la posicion $n_i=i-n$. de modo que ahora:
+
+$$C_i = C_{i-1} + \frac{2 \cdot C_{i-1}}{4 (i-m)+1}$$
+
+Esto ultimo se traduce en aumentar el intervalo entre pulsos, lo que provoca que el motor reduzca su velocidad de forma gradual.
 
 ## 4. Pulsos por timer
 
 ¿Por qué los pulsos salen de una interrupción de timer de alta prioridad y no del loop principal?
 ¿Qué pasaría con la posición y la velocidad si salieran del loop?
 
-Los pulsos deben salir de una interrupcion de timer por que si salieran del loop principal, la velocidad del motor estaria sujeta a la complejidad de dicho loop principal. si en el mismo hay instrucciones con costos computacionales altos, la velocidad de salida de los pulsos se veria afectada de manera irregular. 
+Los pulsos deben salir de una interrupcion de timer por que si salieran del loop principal, la velocidad del motor estaria sujeta a la complejidad de dicho loop principal. si en el mismo hay instrucciones con costos computacionales altos, la velocidad de salida de los pulsos dependera del procesamiento requerido en ese entonces y los pulsos de salida tendran un patron irregular. 
 
-Cuando se trabaja con interrupciones de alta prioridad, apenas se cumple la condicion de interrupcion, el microcontrolador deja de lado lo que estaba haciendo y ejecuta el servicio de interrupcion. al ser de alta prioridad, siempre se va a ejecutar sin importar que es lo que este haciendo. de esta forma el ritmo de salida de los pulsos seran constantes.
-
-*(completar)*
+Cuando se trabaja con interrupciones de alta prioridad, apenas se cumple la condicion de interrupcion, el microcontrolador deja de lado lo que estaba haciendo y ejecuta el servicio de interrupcion. Al ser de alta prioridad, siempre se va a ejecutar sin importar que es lo que este haciendo. de esta forma el ritmo de salida de los pulsos seran constantes. 
 
 ## 5. Coordinación de ejes
 
