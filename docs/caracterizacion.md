@@ -11,8 +11,8 @@ Las fotos van en [`../hardware/fotos/`](../hardware/fotos/), con nombres que dig
 
 | Dato | Valor | Fuente |
 |------|-------|--------|
-| Marca / modelo | *(completar)* | |
-| Alimentación de red | *(completar)* | |
+| Marca / modelo | Marca: Degem Systems / Modelo: TP-LT CNC Lathe | [foto](./imagenes/equipo_frontal.jpg) |
+| Alimentación de red | 220V 50Hz | [foto](./imagenes/motor_base_torno.jpeg)|
 | Distancia entre puntos | *(completar)* | |
 | Volteo sobre la bancada | *(completar)* | |
 | Ejes motorizados | *(completar)* | |
@@ -21,7 +21,7 @@ Las fotos van en [`../hardware/fotos/`](../hardware/fotos/), con nombres que dig
 
 | Eje | Tipo (paso a paso / servo) | Datos de placa | Pasos por vuelta | Paso del husillo de avance (mm) | Fuente |
 |-----|----------------------------|----------------|------------------|---------------------------------|--------|
-| X | *(completar)* | | | | |
+| X | Tipo paso a paso| | | | |
 | Z | *(completar)* | | | | |
 
 ## Drivers
@@ -45,11 +45,16 @@ tensión de alimentación, corriente configurada, microstepping configurado y c�
 Qué sensores hay, dónde están, de qué tipo son (mecánicos, inductivos, ópticos), si son
 normalmente abiertos o cerrados, y a qué pin llegan.
 
+Hay tres finales de carrera, pero uno de ellos actua como un mecanismo de seguridad adicional al de la parada de emergencia. Los sensor restantes indican el limite de los ejes X y Z.
+
 *(completar)*
 
 ## Fuente de alimentación
 
 Tensiones, corrientes, qué alimenta cada salida.
+
+Segun la placa del motor de la base por donde se deposita el material. El equipo trabaja con 220V, con una corriente de 0.2A.
+
 
 *(completar)*
 
