@@ -21,13 +21,17 @@ Las fotos van en [`../hardware/fotos/`](../hardware/fotos/), con nombres que dig
 
 | Eje | Tipo (paso a paso / servo) | Datos de placa | Pasos por vuelta | Paso del husillo de avance (mm) | Fuente |
 |-----|----------------------------|----------------|------------------|---------------------------------|--------|
-| X | Paso a paso bipolar | MAE HY 200 1713 0033 BX04 (0.33 A, NEMA 17) | 200 (1.8°/paso) | *(completar)* | [datasheet](../hardware/HY200-1713-0033-BX04.pdf) |
-| Z | Paso a paso bipolar | *(verificar si es el mismo modelo MAE HY200)* | 200 (a confirmar) | *(completar)* | [foto](../hardware/fotos/torno_frontal.jpeg) |
+| X | Paso a paso bipolar | MAE HY 200 1713 0033 BX04 (0.33 A, NEMA 17) | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | [datasheet](../hardware/HY200-1713-0033-BX04.pdf) y [EEPROM](../firmware/firmware_eeprom.hex) |
+| Z | Paso a paso bipolar | *(mismo modelo MAE HY200 o equivalente)* | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | [foto](../hardware/fotos/torno_frontal.jpeg) y [EEPROM](../firmware/firmware_eeprom.hex) |
+
+> [!NOTE]
+> **Deducción cinemática del paso de husillo:** 
+> Los motores MAE HY200 poseen 200 pasos/vuelta ($1,8^\circ/\text{paso}$). Con los controladores L297 polarizados fijamente en modo **medio paso (*half-step*)**, el sistema requiere $200 \times 2 = 400\text{ pulsos/vuelta}$. 
+> Al contrastar con la calibración activa extraída de la memoria EEPROM del Arduino previo (`$0 = 100.0` y `$2 = 100.0` pasos/mm):
+> $$\text{Paso del husillo} = \frac{400\text{ pulsos/vuelta}}{100\text{ pulsos/mm}} = \mathbf{4{,}0\text{ mm/vuelta}}$$
+> Asumiendo acoplamiento directo 1:1, ambos ejes cuentan con tornillos de avance de **4 mm de paso**. Pendiente de ratificación física directa con calibre.
 
 ## Drivers
-
-¿Placas separadas con entradas STEP/DIR/ENABLE, o una placa propietaria con lógica propia? Modelo,
-tensión de alimentación, corriente configurada, microstepping configurado y cómo se configura.
 
 El torno cuenta con una **placa unificada original de Degem Systems** que implementa control por **STEP / DIR estándar**. No posee microcontrolador con firmware propietario para la cinemática:
 
@@ -38,19 +42,23 @@ El torno cuenta con una **placa unificada original de Degem Systems** que implem
   * Pin 19 (`HALF/FULL`): conmuta entre paso completo y medio paso (*half-step*).
   * Control de corriente mediante corte por chopper PWM interno censando sobre resistencias de potencia.
 * **Etapa de potencia (drivers):** Dos circuitos integrados **ST L298N** (puente H dual, montados sobre el disipador de aluminio principal). Conmutan la corriente continua hacia las 4 fases de los motores paso a paso bipolares.
-* **Buffer de entrada del puerto DB25:** Circuito integrado **74HCT244** (Octal buffer / line driver con entradas compatibles TTL 5V). Recibe las señales del conector DB25 (puerto paralelo de la PC), limpiando el ruido y protegiendo las entradas de los L297.
+* **Aislación y buffers de entrada:** Las señales de control STEP y DIR provenientes del puerto DB25 ingresan mediante cables apantallados a conectores dedicados en la placa (ej. **J3**), pasando por optoacopladores dobles **Toshiba TLP624-2** (un integrado por eje, aislando galvánicamente CLK y DIR). Las señales luego son acondicionadas por el buffer **74HCT244** y las compuertas de seguridad antes de ingresar a los pines 18 (`CLOCK`) y 17 (`CW/CCW`) de los **L297**.
+* **Habilitación y modo de paso:** Los pines 10 (`ENABLE`) y 19 (`HALF/FULL`) de los L297 no se comandan desde el DB25. Se encuentran polarizados por hardware en la placa madre (+5V permanente para mantener torque de retención y modo medio paso fijo).
 * **Compuertas de seguridad / interlock:** Circuito integrado **M74HCT08B1** (4 compuertas AND de 2 entradas). Implementa lógica cableada de seguridad (por ejemplo, habilitar pulsos únicamente si no hay fin de carrera activado o guarda abierta).
 * **Driver de periféricos auxiliares:** Circuito integrado **ULN2801N** (arreglo de 8 transistores Darlington). Amplifica corriente para accionar el relé de estado sólido del husillo y señales de control.
-* **Microstepping configurado:** El L297 admite únicamente **paso completo (1/1)** o **medio paso (1/2)**. *(Pendiente verificar si el pin 19 HALF/FULL está cableado fijo a nivel alto/bajo o si se conmuta desde el DB25)*.
+* **Microstepping configurado:** El L297 admite únicamente **paso completo (1/1)** o **medio paso (1/2)** (fijado por hardware en placa).
+* **Restricción temporal en entradas STEP (ancho de pulso):** Los optoacopladores de entrada **Toshiba TLP624-2** son de tipo fototransistor, caracterizados por tiempos de conmutación relativamente lentos ($t_r, t_f \approx 20\text{–}50\ \mu\text{s}$). Como se confirmó en la ingeniería inversa del control previo ([`firmware/firmware_eeprom.hex`](../firmware/firmware_eeprom.hex)), el ancho de pulso STEP debe configurarse a un mínimo de **$100\ \mu\text{s}$** (`$3 = 100`) para garantizar el disparo confiable del pin 18 de los L297. A la velocidad rápida de $900\text{ mm/min}$ ($15\text{ mm/s}$), la frecuencia de paso requerida es de solo $1{,}5\text{ kHz}$ (período de $666\ \mu\text{s}$), por lo que el pulso de $100\ \mu\text{s}$ opera con holgura.
 
 ## Husillo
 
 | Dato | Valor | Fuente |
 |------|-------|--------|
-| Tipo de motor | Motor de CA 220V *(a verificar placa del motor)* | [foto](../hardware/fotos/equipo_parte_trasera.jpeg) |
+| Tipo de motor | Motor de inducción monofásico de CA 220V (Lafert, Made in Italy, 1~ IEC 34-1, tipo 56 C 2) | [foto](../hardware/fotos/motor_base_torno.jpeg) |
+| Datos eléctricos de placa | 220 VCA - 50 Hz - 1,2 A - ~0,11 kW - $\cos\varphi = 0,89$ - Capacitor: $4\ \mu\text{F} / 450\text{ V}$ | [foto](../hardware/fotos/motor_base_torno.jpeg) |
+| Velocidad nominal motor | ~2610 – 2800 RPM (2 polos, 50 Hz) | [foto](../hardware/fotos/motor_base_torno.jpeg) |
+| Transmisión | Polea y correa plana con rueda tensora hacia el eje del husillo | [foto](../hardware/fotos/motor_base_torno.jpeg) |
 | Control de velocidad | Digital ON / OFF mediante Relé de Estado Sólido (SSR) | Relevamiento de placa |
 | Modelo del actuador | SSR Celduc France SC841110 (Salida: 230 VCA / 10 A - Entrada: 4-30 VCC) | [foto](../hardware/fotos/equipo_parte_trasera2.jpeg) |
-| Rango de RPM | *(completar según placa del husillo)* | |
 | Encoder o sensor de índice | *(completar: verificar si cuenta con sensor óptico/inductivo de 1 pulso por vuelta para roscado)* | |
 
 ## Finales de carrera, home y parada de emergencia
@@ -68,8 +76,6 @@ El torno cuenta con tres microswitches mecánicos cableados como contactos **Nor
 
 ## Fuente de alimentación
 
-Tensiones, corrientes, qué alimenta cada salida.
-
 La alimentación interna está provista por un transformador **A. Kirschner Ltd (0490 02/97)** y etapas de rectificación y regulación dedicadas:
 
 * **Entrada de red:** 220 VCA 50 Hz. El transformador cuenta con dos primarios de 115V conectados en serie (230 VCA nominales).
@@ -85,27 +91,56 @@ derecha, y se completan con medición.
 
 | Pin | Estándar (desde la PC) | Dirección | Función en el torno | Destino (cable / placa / borne) | Verificado con |
 |-----|------------------------|-----------|---------------------|---------------------------------|----------------|
-| 1 | /Strobe | Salida | | | |
-| 2 | D0 | Salida | | | |
-| 3 | D1 | Salida | | | |
-| 4 | D2 | Salida | | | |
-| 5 | D3 | Salida | | | |
-| 6 | D4 | Salida | | | |
-| 7 | D5 | Salida | | | |
-| 8 | D6 | Salida | | | |
-| 9 | D7 | Salida | | | |
-| 10 | /Ack | Entrada | | | |
-| 11 | Busy | Entrada | | | |
-| 12 | Paper Out | Entrada | | | |
-| 13 | Select | Entrada | | | |
-| 14 | /Auto Feed | Salida | | | |
-| 15 | /Error | Entrada | | | |
-| 16 | /Init | Salida | | | |
-| 17 | /Select In | Salida | | | |
-| 18—25 | Masa | — | Masa lógica / chasis | GND común de la placa | |
+| 1 | /Strobe | Salida | **Control de Husillo (ON/OFF)** | Ficha J8 (cable apantallado) -> Etapa de control SSR Celduc | Inspección física / cableado |
+| 2 | D0 | Salida | **STEP Eje Z** (CLOCK) | Conector placa (J3) -> Optoacoplador TLP624-2 -> L297 Eje Z (Pin 18) | Relevamiento de placa / continuidades |
+| 3 | D1 | Salida | **DIR Eje Z** (CW/CCW) | Conector placa (J3) -> Optoacoplador TLP624-2 -> L297 Eje Z (Pin 17) | Relevamiento de placa / continuidades |
+| 4 | D2 | Salida | **STEP Eje X** (CLOCK) | Conector placa -> Optoacoplador TLP624-2 -> L297 Eje X (Pin 18) | Relevamiento de placa / continuidades |
+| 5 | D3 | Salida | **DIR Eje X** (CW/CCW) | Conector placa -> Optoacoplador TLP624-2 -> L297 Eje X (Pin 17) | Relevamiento de placa / continuidades |
+| 6 | D4 | Salida | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
+| 7 | D5 | Salida | *(pendiente)* | | |
+| 8 | D6 | Salida | *(pendiente)* | | |
+| 9 | D7 | Salida | *(pendiente)* | | |
+| 10 | /Ack | Entrada | **Fin de carrera Eje Z** | Conector J11 / microswitch Z hacia PC/Arduino | Verificación física / pinout |
+| 11 | Busy | Entrada | *(pendiente)* | | |
+| 12 | Paper Out | Entrada | **Fin de carrera Eje X** | Conector J10 / microswitch X hacia PC/Arduino | Verificación empírica con multímetro |
+| 13 | Select | Entrada | *(pendiente)* | | |
+| 14 | /Auto Feed | Salida | *(pendiente)* | | |
+| 15 | /Error | Entrada | *(pendiente)* | | |
+| 16 | /Init | Salida | *(pendiente)* | | |
+| 17 | /Select In | Salida | *(pendiente)* | | |
+| 18 | Masa | — | **Masa lógica (GND)** | GND común de la placa | Continuidad física |
+| 19 | Masa | — | **Masa lógica (GND)** | GND común de la placa | Continuidad física |
+| 20 | Masa | — | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
+| 21 | Masa | — | *(pendiente de verificar GND o NC)* | | |
+| 22 | Masa | — | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
+| 23 | Masa | — | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
+| 24 | Masa | — | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
+| 25 | Masa | — | **Desconectado (NC)** | Sin conexión | Continuidad física / inspección |
 
-Si hay optoacopladores o buffers entre el conector y los drivers, anotar cuáles y dónde, y si
-invierten la señal. *(Las entradas de control pasan por el buffer 74HCT244).*
+Las entradas de STEP y DIR provenientes del DB25 cuentan con aislación galvánica mediante optoacopladores dobles **Toshiba TLP624-2** y acondicionamiento mediante un buffer **74HCT244** antes de ingresar a los pines de control de los L297.
+
+## Relevamiento del control previo (Arduino / Grbl)
+
+En el torno se halló un microcontrolador ATmega328P (Arduino Uno / Nano) utilizado previamente para comandar la máquina. Se extrajo tanto la memoria de programa Flash ([`firmware/firmware_extraido.hex`](../firmware/firmware_extraido.hex)) como la memoria no volátil EEPROM ([`firmware/firmware_eeprom.hex`](../firmware/firmware_eeprom.hex)). El análisis del código binario y la decodificación de las estructuras persistentes confirmaron lo siguiente:
+
+* **Firmware:** **Grbl v0.8c** (compilado para ATmega328P a 16 MHz, 9600 baudios, con bootloader Optiboot en `0x7E00`).
+* **Pin de control de husillo:** La señal de encendido de husillo (*Spindle Enable/PWM*) está asignada al pin **D11** del Arduino (conmuta a ~4,3 V con `M3` y cae a 0 V con `M5`, configuración típica con `VARIABLE_SPINDLE` habilitado).
+* **Estado de la calibración:** La EEPROM cuenta con datos válidos con suma de comprobación (*checksum*) verificada (`0x1A`), evidenciando parámetros configurados y utilizados en la máquina.
+
+### Parámetros extraídos de la EEPROM
+
+| Parámetro Grbl | Valor en EEPROM | Significado físico / Relevancia para el torno |
+| :--- | :--- | :--- |
+| `$0` | `100.0` paso/mm | Resolución Eje X (transversal) |
+| `$2` | `100.0` paso/mm | Resolución Eje Z (longitudinal) |
+| `$3` | `100` µs | Ancho de pulso STEP (adaptado a los optoacopladores lentos TLP624-2) |
+| `$4` | `350.0` mm/min | Avance de corte de referencia (*feedrate*) |
+| `$5` | `900.0` mm/min | Velocidad máxima en desplazamientos rápidos (*seek*) |
+| `$6` | `192` (`0b11000000`) | Máscara de inversión de sentido: Eje Z invertido respecto de X |
+| `$8` | `10.0` mm/s² | Aceleración ($36.000\text{ mm/min²}$) |
+| `flags` | `14` (`0b00001110`) | Habilitación de límites por hardware (*hard limits*) e inversión de señal Enable |
+
+Esta configuración ratifica que los husillos de ambos ejes tienen un avance de **4 mm/vuelta** (considerando el motor de 200 pasos y el modo de medio paso del L297: $\frac{400\text{ pulsos/rev}}{100\text{ pulsos/mm}} = 4\text{ mm}$).
 
 ## Esquema
 

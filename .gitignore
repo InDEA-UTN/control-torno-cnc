@@ -34,3 +34,6 @@ Thumbs.db
 # Capturas crudas grandes del analizador lógico (las recortadas y chicas sí se versionan)
 *.sr
 *.logicdata
+
+# Resumen de conversaciones del asistente
+agent.md
