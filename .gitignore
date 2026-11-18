@@ -4,6 +4,7 @@ build/
 Debug/
 Release/
 *.hex
+!firmware/*.hex
 *.elf
 *.bin
 *.map

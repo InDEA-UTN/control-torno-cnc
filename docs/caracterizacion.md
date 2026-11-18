@@ -19,10 +19,10 @@ Las fotos van en [`../hardware/fotos/`](../hardware/fotos/), con nombres que dig
 
 ## Motores de los ejes
 
-| Eje | Tipo (paso a paso / servo) | Datos de placa | Pasos por vuelta | Paso del husillo de avance (mm) | Fuente |
-|-----|----------------------------|----------------|------------------|---------------------------------|--------|
-| X | Paso a paso bipolar | MAE HY 200 1713 0033 BX04 (0.33 A, NEMA 17) | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | [datasheet](../hardware/HY200-1713-0033-BX04.pdf) y [EEPROM](../firmware/firmware_eeprom.hex) |
-| Z | Paso a paso bipolar | *(mismo modelo MAE HY200 o equivalente)* | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | [foto](../hardware/fotos/torno_frontal.jpeg) y [EEPROM](../firmware/firmware_eeprom.hex) |
+| Eje | Tipo (paso a paso / servo) | Datos de placa | Pasos por vuelta | Paso del husillo de avance (mm) | Estado funcional | Fuente |
+|-----|----------------------------|----------------|------------------|---------------------------------|------------------|--------|
+| X | Paso a paso bipolar | MAE HY 200 1713 0033 BX04 (0.33 A, NEMA 17) | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | **Operativo al 100%** (desplazamientos precisos validados) | [datasheet](../hardware/HY200-1713-0033-BX04.pdf), [EEPROM](../firmware/firmware_eeprom.hex) y ensayos empíricos |
+| Z | Paso a paso bipolar | *(mismo modelo MAE HY200 o equivalente)* | 200 (1.8°/paso) | **4,0 mm** *(deducido de calibración previa)* | **Electrónica operativa / Atasco mecánico** (requiere ajuste de guías, colisas o tuerca de husillo) | [foto](../hardware/fotos/torno_frontal.jpeg), [EEPROM](../firmware/firmware_eeprom.hex) y ensayos empíricos |
 
 > [!NOTE]
 > **Deducción cinemática del paso de husillo:** 
@@ -57,8 +57,9 @@ El torno cuenta con una **placa unificada original de Degem Systems** que implem
 | Datos eléctricos de placa | 220 VCA - 50 Hz - 1,2 A - ~0,11 kW - $\cos\varphi = 0,89$ - Capacitor: $4\ \mu\text{F} / 450\text{ V}$ | [foto](../hardware/fotos/motor_base_torno.jpeg) |
 | Velocidad nominal motor | ~2610 – 2800 RPM (2 polos, 50 Hz) | [foto](../hardware/fotos/motor_base_torno.jpeg) |
 | Transmisión | Polea y correa plana con rueda tensora hacia el eje del husillo | [foto](../hardware/fotos/motor_base_torno.jpeg) |
-| Control de velocidad | Digital ON / OFF mediante Relé de Estado Sólido (SSR) | Relevamiento de placa |
+| Control de velocidad | Digital ON / OFF comandado por **Bomba de Carga (*Charge Pump / Watchdog*)** hacia Relé de Estado Sólido (SSR) | Ensayos empíricos y mediciones con multímetro |
 | Modelo del actuador | SSR Celduc France SC841110 (Salida: 230 VCA / 10 A - Entrada: 4-30 VCC) | [foto](../hardware/fotos/equipo_parte_trasera2.jpeg) |
+| Señal de control requerida | **Onda cuadrada continua de ~1 kHz a 2 kHz (Pin 1 DB25 / J8)**. Por seguridad, la placa madre desacopla en alterna (bloquea continua DC); un nivel continuo de 5V o 0V es ignorado. Requiere pulsos permanentes para mantener cargado el capacitor que alimenta al SSR. Al cesar los pulsos, se descarga en ~1 s y el motor se apaga. | Ensayos funcionales y oscilación por Timer 0 de Grbl |
 | Encoder o sensor de índice | *(completar: verificar si cuenta con sensor óptico/inductivo de 1 pulso por vuelta para roscado)* | |
 
 ## Finales de carrera, home y parada de emergencia
@@ -157,4 +158,13 @@ torno original y qué se reemplaza?
 
 * **¿Es STEP/DIR simple?** **SÍ.** La electrónica original se basa en el par clásico **L297 + L298N**. Los motores se controlan directamente mediante trenes de pulsos (STEP) y niveles de dirección (DIR) con lógica TTL de 5V.
 * **Riesgo de hardware cerrado:** Queda **descartado**. No existe un procesador propietario ni protocolo serie que interfiera en la cinemática.
-* **Estrategia de modernización:** Se puede conservar íntegramente la etapa de potencia actual (fuente, drivers L298N, L297 y relé de estado sólido del husillo) y reemplazar únicamente la PC con puerto paralelo por una controladora moderna (Teensy 4.1 o STM32 con grblHAL). Solo se requerirá acondicionar las señales de 3.3V del microcontrolador a los 5V que espera el buffer 74HCT244 de la placa.
+* **Estrategia de modernización:** Se puede conservar íntegramente la etapa de potencia actual (fuente, drivers L298N, L297 y relé de estado sólido del husillo) y reemplazar únicamente la PC con puerto paralelo por una controladora moderna (Teensy 4.1 o STM32 con grblHAL). Solo se requerirá acondicionar las señales de 3.3V del microcontrolador a los 5V que espera el buffer 74HCT244 de la placa, y proveer la señal de ~1 a 2 kHz para la bomba de carga del husillo.
+
+## Estado de entrega y transferencia al Laboratorio 3D de la Universidad (UTN)
+
+El sistema queda caracterizado, validado y operativo con la controladora intermedia (Arduino Nano corriendo Grbl v0.8c adaptado con `grbl_v08c_remapeado.hex`):
+1. **Eje X (Transversal):** 100% operativo y calibrado (100 pasos/mm, husillo paso 4 mm, motor MAE HY200 en medio paso). Responde con suavidad y precisión a comandos G-code.
+2. **Eje Z (Longitudinal):** Cadena de control electrónico 100% validada (señales STEP/DIR llegan a los transistores de potencia). **Pendiente para el laboratorio:** Desarme, limpieza, lubricación y desajuste de colisas mecánicas / tuerca de avance debido a fricción/atasco mecánico que frena el motor.
+3. **Husillo (Motor AC 220V):** 100% operativo comandado por software (`M3 S1000` enciende, `M5` apaga). Se resolvió la ingeniería inversa de la bomba de carga (*Charge Pump*), generando una onda cuadrada continua de ~2 kHz desde el microcontrolador.
+4. **Seguridad:** Enclavamiento por hardware (*Hardware Interlock* con compuertas AND `M74HCT08B1`) verificado: la máquina inhibe el paso de pulsos si la guarda de protección (J14) está abierta.
+5. **Firmware:** Código fuente documentado en [`../firmware/grbl_v08c_torno/`](../firmware/grbl_v08c_torno/) y binario listo para flashear en [`../firmware/grbl_v08c_remapeado.hex`](../firmware/grbl_v08c_remapeado.hex). Respaldos originales intactos.
