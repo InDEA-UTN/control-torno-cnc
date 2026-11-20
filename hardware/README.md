@@ -43,5 +43,5 @@ A continuación se listan las hojas de datos de los circuitos integrados y compo
 
 ## Lista de materiales
 
-*(Completar cuando esté elegido el microcontrolador y cerrada la etapa 1: microcontrolador, driver
-y motor para las pruebas de banco de las etapas 2 y 3, buffers u optoacopladores, conectores.)*
+> [!NOTE]
+> **Estado del desarrollo de hardware propio:** La placa de interfaz (`placa_interfaz/`), su diseño en KiCad y esta lista de materiales quedaron sin completar debido a que, tras armar la estructura inicial del repositorio, se encontró un **Arduino Nano** ya instalado y cableado al torno. Al aprovechar y adaptar esa controladora existente mediante firmware, dejó de ser necesario diseñar e implementar una placa de interfaz desde cero en esta etapa.

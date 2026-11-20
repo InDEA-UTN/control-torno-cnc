@@ -86,6 +86,9 @@ La alimentación interna está provista por un transformador **A. Kirschner Ltd 
 
 ## Mapa de pines del DB25
 
+> [!NOTE]
+> **Alcance del relevamiento del DB25:** Al armar inicialmente el repositorio, se asumió que la migración debía comenzar desde cero, por lo que se planteó relevar la totalidad de los 25 pines del conector paralelo. Sin embargo, al hallar el controlador **Arduino Nano** ya cableado a la máquina, se verificaron únicamente los pines efectivamente utilizados por el sistema (ejes X/Z, husillo, fines de carrera y masa). Los pines restantes marcados como *(pendiente)* no se continuaron relevando por no ser necesarios para la puesta en marcha ni para la operación actual.
+
 La columna **Estándar** es la asignación del puerto paralelo de una PC (SPP). Las máquinas CNC
 viejas no respetan ese uso -usan los pines como salidas y entradas genéricas-, así que solo sirve
 para saber **qué dirección tiene cada pin del lado de la PC**. Lo que importa son las columnas de la
@@ -149,7 +152,8 @@ Esta configuración ratifica que los husillos de ambos ejes tienen un avance de 
 Esquema del cableado relevado, del DB25 a cada driver, motor y sensor. Puede ser a mano y
 fotografiado mientras se releva; el definitivo, en KiCad dentro de [`../hardware/`](../hardware/).
 
-*(completar)*
+> [!NOTE]
+> **Estado del diseño de hardware (`placa_interfaz/`):** Este apartado y el esquemático definitivo en KiCad quedaron sin desarrollar porque, al encontrar el **Arduino Nano** ya instalado y cableado al DB25, se optó por recuperar y adaptar esa controladora por firmware en lugar de diseñar una placa de interfaz desde cero.
 
 ## Conclusión de la etapa
 
