@@ -10,7 +10,19 @@ Facultad Regional Mendoza.
 
 - **Responsable:** Gonzalo Luna
 - **Director:** Javier Velez
-- **Estado:** Etapa 0 — preparación (ver [`docs/plan.md`](docs/plan.md))
+- **Estado:** Etapas 0 y 1 completadas — Torno operativo con Arduino Nano adaptado, listo para transferencia al Laboratorio 3D de la UTN (ver [`docs/plan.md`](docs/plan.md) y [`docs/caracterizacion.md`](docs/caracterizacion.md))
+
+## Estado actual y transferencia al Laboratorio 3D
+
+Al iniciar el relevamiento se encontró un controlador **Arduino Nano** ya cableado al conector DB25 del torno. En lugar de diseñar una placa de interfaz desde cero, se recuperó y adaptó el firmware existente ([`firmware/grbl_v08c_remapeado.hex`](firmware/grbl_v08c_remapeado.hex)) para dejar la máquina funcional antes de su donación al Laboratorio 3D:
+
+- **Etapa 0 (Preparación):** ✅ Completada en [`docs/conceptos.md`](docs/conceptos.md).
+- **Etapa 1 (Caracterización):** ✅ Completada en [`docs/caracterizacion.md`](docs/caracterizacion.md), incluyendo relevamiento electrónico, hojas de datos en [`hardware/`](hardware/README.md) y decodificación de la bomba de carga (*Charge Pump* con `74HC123`) para el husillo. *(El pinout restante del DB25 sin uso y el esquemático KiCad de una placa nueva se dejaron sin desarrollar por no ser necesarios con el Arduino Nano integrado).*
+- **Estado funcional actual:**
+  - **Husillo principal (Motor AC 220 V):** ✅ Operativo por G-code (`M3 S1000` / `M5`) mediante onda cuadrada de ~2 kHz generada por Timer 0 en D3.
+  - **Eje X (Transversal):** ✅ Operativo (100 pasos/mm, husillo paso 4 mm).
+  - **Eje Z (Longitudinal):** Electrónica validada; requiere **ajuste y lubricación mecánica** en colisas/guías por atasco mecánico.
+- **Pendiente para el Laboratorio 3D (Etapas 2–7):** Desatasco mecánico del Eje Z, verificación dimensional con calibre y, a futuro, migración a plataforma de 32 bits con **grblHAL** según [`docs/plan.md`](docs/plan.md).
 
 ## El problema
 
